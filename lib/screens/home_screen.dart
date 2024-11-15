@@ -86,7 +86,8 @@ class _HomeScreenState extends State<HomeScreen> {
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Registro de Migraña'),
+          title: const Text('Registro de Migraña',
+          style: TextStyle(fontSize: 24), textAlign: TextAlign.center,),
           actions: [
             Switch(
               value: _isDarkMode,

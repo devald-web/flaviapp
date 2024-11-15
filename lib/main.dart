@@ -24,6 +24,7 @@ class _FlaviAppState extends State<FlaviApp> {
       valueListenable: _themeMode,
       builder: (context, currentMode, child) {
         return MaterialApp(
+          debugShowCheckedModeBanner: false,
           title: 'Registro de Migraña',
           theme: ThemeData(
             useMaterial3: true,
