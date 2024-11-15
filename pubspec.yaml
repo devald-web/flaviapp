@@ -19,6 +19,7 @@ dependencies:
   intl: ^0.18.1
   fl_chart: ^0.69.0
   animated_card: ^2.0.0
+  google_fonts: ^5.1.0
 
 dev_dependencies:
   flutter_test:
