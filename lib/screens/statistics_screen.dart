@@ -3,7 +3,6 @@ import 'package:flaviapp/services/database_helper.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import '../models/migraine_entry.dart';
-import '../screens/home_screen.dart';
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({Key? key}) : super(key: key);
@@ -30,11 +29,26 @@ class StatisticsScreen extends StatelessWidget {
                     return const Center(child: Text('No data available.'));
                   } else {
                     final data = snapshot.data!;
+                    print('DATOS: $data');
+                    final mostUsedMedication =
+                    _mostUsedMedication(data['medicationUsage']);
+                    print('MEDICACIÓN MAS USADA: $mostUsedMedication');
+                    final mostCommonIntensity =
+                    _mostCommonIntensity(data['intensity']);
                     return ListView(
                       children: [
-                        _buildPieChart(data['medicationUsage']),
+                          _buildPieChart(data['medicationUsage']),
                         _buildBarChart(data['intensity']),
-                        // Add more charts as needed
+                        ListTile(
+                          title: Text('Most Used Medication'),
+                          subtitle: Text(
+                              '${mostUsedMedication.key}: ${mostUsedMedication.value} times'),
+                        ),
+                        ListTile(
+                          title: Text('Most Common Intensity'),
+                          subtitle: Text(
+                              '${mostCommonIntensity.key}: ${mostCommonIntensity.value} times'),
+                        ),
                       ],
                     );
                   }
@@ -49,23 +63,48 @@ class StatisticsScreen extends StatelessWidget {
 
   Future<Map<String, dynamic>> _fetchStatistics() async {
     final entries = await DatabaseHelper.instance.getAllEntries();
+    final medicationUsage = _calculateMedicationUsage(entries);
+    final intensity = _calculateIntensity(entries);
     return {
-      'medicationUsage': _processMedicationUsage(entries),
-      'intensity': _processIntensity(entries),
+      'medicationUsage': medicationUsage,
+      'intensity': intensity,
     };
   }
 
-  Map<String, double> _processMedicationUsage(List<MigraineEntry> entries) {
-    // Implementation
-    return {};
+  Map<String, double> _calculateMedicationUsage(List<MigraineEntry> entries) {
+    final Map<String, double> medicationUsage = {};
+    for (var entry in entries) {
+      if (entry.medication != null) {
+        medicationUsage.update(entry.medication!, (value) => value + 1,
+            ifAbsent: () => 1);
+      }
+    }
+    return medicationUsage;
   }
 
-  Map<String, double> _processIntensity(List<MigraineEntry> entries) {
-    // Implementation
-    return {};
+  Map<String, double> _calculateIntensity(List<MigraineEntry> entries) {
+    final Map<String, double> intensity = {};
+    for (var entry in entries) {
+      if (entry.intensity != null) {
+        intensity.update(entry.intensity!.toString(), (value) => value + 1,
+            ifAbsent: () => 1);
+      }
+    }
+    return intensity;
+  }
+
+  MapEntry<String, double> _mostUsedMedication(
+      Map<String, double> medicationUsage) {
+    return medicationUsage.entries.reduce((a, b) => a.value > b.value ? a : b);
+  }
+
+  MapEntry<String, double> _mostCommonIntensity(Map<String, double> intensity) {
+    return intensity.entries.reduce((a, b) => a.value > b.value ? a : b);
   }
 
   Widget _buildPieChart(Map<String, double> data) {
+
+    //return Text("sdsdsd");
     return PieChart(
       PieChartData(
         sections: data.entries.map((entry) {
@@ -82,11 +121,17 @@ class StatisticsScreen extends StatelessWidget {
     return BarChart(
       BarChartData(
         barGroups: data.entries.map((entry) {
+          int xValue;
+          try {
+            xValue = int.parse(entry.key);
+          } catch (e) {
+            xValue = 0; // or handle the error appropriately
+          }
           return BarChartGroupData(
-            x: int.parse(entry.key),
+            x: xValue,
             barRods: [
               BarChartRodData(
-                y: entry.value,
+                fromY: entry.value, toY: 0,
               ),
             ],
           );

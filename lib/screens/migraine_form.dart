@@ -7,7 +7,12 @@ class MigraineForm extends StatefulWidget {
   final VoidCallback onSave;
   final MigraineEntry? existingEntry;
 
-  const MigraineForm({Key? key, required this.selectedDate, required this.onSave, this.existingEntry}) : super(key: key);
+  const MigraineForm(
+      {Key? key,
+      required this.selectedDate,
+      required this.onSave,
+      this.existingEntry})
+      : super(key: key);
 
   @override
   _MigraineFormState createState() => _MigraineFormState();
@@ -21,6 +26,28 @@ class _MigraineFormState extends State<MigraineForm> {
   String? _notes;
 
   final _formKey = GlobalKey<FormState>();
+
+  final List<String> _medications = [
+    'Ibuprofeno',
+    'Paracetamol',
+    'Sumatriptán',
+    'Dorixina Relax',
+    'Migradorixina'
+  ];
+
+  final List<String> _triggers = [
+    'Estrés',
+    'Chocolate',
+    'Alimento procesado',
+    'Cafeína',
+    'Alcohol',
+    'Cambios hormonales',
+    'Alteraciones en el sueño',
+    'Deshidratación',
+    'Cambios en el clima',
+    'Luces brillantes',
+    'Olores fuertes'
+  ];
 
   @override
   void initState() {
@@ -44,15 +71,16 @@ class _MigraineFormState extends State<MigraineForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            const Text(
               'Registro de Migraña',
-              style: Theme
-                  .of(context)
-                  .textTheme
-                  .headlineSmall,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF7C3AED),
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             _buildMigraineQuestion(),
             if (_hadMigraine) ...[
               const SizedBox(height: 16),
@@ -67,14 +95,41 @@ class _MigraineFormState extends State<MigraineForm> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _saveEntry,
-              child: const Text('Guardar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                widget.existingEntry == null ? 'Guardar' : 'Actualizar',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFFFFFFF),
+                ),
+              ),
             ),
             if (widget.existingEntry != null) ...[
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _deleteEntry,
-                child: const Text('Eliminar'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Eliminar',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFFFFFF),
+                  ),
+                ),
               ),
             ],
           ],
@@ -85,12 +140,24 @@ class _MigraineFormState extends State<MigraineForm> {
 
   Widget _buildMigraineQuestion() {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFEDE9FE)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('¿Has tenido migraña hoy?'),
+            const Text(
+              '¿Has tenido migraña hoy?',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F2937),
+              ),
+            ),
             Row(
               children: [
                 Expanded(
@@ -99,6 +166,7 @@ class _MigraineFormState extends State<MigraineForm> {
                     value: true,
                     groupValue: _hadMigraine,
                     onChanged: (value) => setState(() => _hadMigraine = value!),
+                    activeColor: const Color(0xFF7C3AED),
                   ),
                 ),
                 Expanded(
@@ -107,6 +175,7 @@ class _MigraineFormState extends State<MigraineForm> {
                     value: false,
                     groupValue: _hadMigraine,
                     onChanged: (value) => setState(() => _hadMigraine = value!),
+                    activeColor: const Color(0xFF7C3AED),
                   ),
                 ),
               ],
@@ -118,37 +187,106 @@ class _MigraineFormState extends State<MigraineForm> {
   }
 
   Widget _buildMedicationField() {
-    return TextFormField(
-      decoration: const InputDecoration(
+    return DropdownButtonFormField<String>(
+      value: _medication,
+      decoration: InputDecoration(
         labelText: '¿Tomaste medicamento? ¿Cuál fue?',
-        border: OutlineInputBorder(),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFEDE9FE)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFEDE9FE)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF7C3AED)),
+        ),
       ),
-      onChanged: (value) => _medication = value,
+      items: _medications.map((medication) {
+        return DropdownMenuItem(
+          value: medication,
+          child: Text(medication),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _medication = value;
+        });
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Por favor selecciona un medicamento';
+        }
+        return null;
+      },
     );
   }
 
   Widget _buildTriggerField() {
-    return TextFormField(
-      decoration: const InputDecoration(
+    return DropdownButtonFormField<String>(
+      value: _trigger,
+      decoration: InputDecoration(
         labelText: '¿Cuál fue el desencadenante?',
-        border: OutlineInputBorder(),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFEDE9FE)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFEDE9FE)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF7C3AED)),
+        ),
       ),
-      onChanged: (value) => _trigger = value,
+      items: _triggers.map((trigger) {
+        return DropdownMenuItem(
+          value: trigger,
+          child: Text(trigger),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _trigger = value;
+        });
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Por favor selecciona un desencadenante';
+        }
+        return null;
+      },
     );
   }
 
   Widget _buildIntensitySelector() {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFEDE9FE)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('¿Qué tan intenso fue?'),
+            const Text(
+              '¿Qué tan intenso fue?',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8.0,
-              children: ['Moderado', 'Intenso', 'Insoportable'].map((
-                  String intensity) {
+              children: ['Moderado', 'Intenso', 'Insoportable']
+                  .map((String intensity) {
                 return ChoiceChip(
                   label: Text(intensity),
                   selected: _intensity == intensity,
@@ -157,6 +295,12 @@ class _MigraineFormState extends State<MigraineForm> {
                       _intensity = intensity;
                     });
                   },
+                  selectedColor: const Color(0xFF7C3AED),
+                  labelStyle: TextStyle(
+                    color: _intensity == intensity
+                        ? Colors.white
+                        : const Color(0xFF1F2937),
+                  ),
                 );
               }).toList(),
             ),
@@ -168,9 +312,20 @@ class _MigraineFormState extends State<MigraineForm> {
 
   Widget _buildNotesField() {
     return TextFormField(
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Notas adicionales',
-        border: OutlineInputBorder(),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFEDE9FE)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFEDE9FE)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF7C3AED)),
+        ),
       ),
       maxLines: 3,
       onChanged: (value) => _notes = value,
@@ -191,7 +346,7 @@ class _MigraineFormState extends State<MigraineForm> {
       if (widget.existingEntry == null) {
         await DatabaseHelper.instance.insertEntry(entry);
       } else {
-        print('Updating entry with id: $entry');
+        entry.id = widget.existingEntry!.id;
         await DatabaseHelper.instance.updateEntry(entry);
       }
       widget.onSave();

@@ -1,7 +1,6 @@
-import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../models/migraine_entry.dart';
+import 'package:flaviapp/models/migraine_entry.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -18,66 +17,107 @@ class DatabaseHelper {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: _createDB,
+    );
   }
 
-  Future<void> _createDB(Database db, int version) async {
-   await db.execute('''
+  Future _createDB(Database db, int version) async {
+    await db.execute('''
       CREATE TABLE migraine_entries(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT NOT NULL,
-        hadMigraine INTEGER NOT NULL,
+        hadMigraine INTEGER NOT NULL DEFAULT 1,
         medication TEXT,
         trigger TEXT,
         intensity TEXT NOT NULL,
         notes TEXT
       )
     ''');
+    await db.execute('CREATE INDEX idx_date ON migraine_entries (date)');
   }
 
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
 
   Future<int> insertEntry(MigraineEntry entry) async {
     final db = await instance.database;
-    final dateFormat = DateFormat('yyyy-MM-dd');
-    final formattedDate = dateFormat.format(entry.date);
-    final entryWithFormattedDate = entry.copyWith(date: DateTime.parse(formattedDate));
-    print('Inserting entry: ${entryWithFormattedDate.toMap()}');
-    final id = await db.insert('migraine_entries', entryWithFormattedDate.toMap());
-    print('Inserted entry with id: $id');
-    return id;
-  }
+    final formattedDate = _formatDate(entry.date);
 
-  Future<MigraineEntry?> getEntryByDate(DateTime date) async {
-    final db = await instance.database;
-    final dateFormat = DateFormat('yyyy-MM-dd');
-    final formattedDate = dateFormat.format(date);
-    print('Querying for date: $formattedDate');
-    final result = await db.query(
-      'migraine_entries',
-      where: 'date LIKE ?',
-      whereArgs: ['$formattedDate%'],
-    );
-    if (result.isNotEmpty) {
-      print('Entry found: ${result.first}');
-      return MigraineEntry.fromMap(result.first);
+    // Verificar si ya existe una entrada para esta fecha
+    final existingEntry = await getEntryByDate(entry.date);
+    if (existingEntry != null) {
+      // Si existe, actualizar en lugar de insertar
+      return await updateEntry(entry);
     }
-    print('No entry found for date: $formattedDate');
-    return null;
+
+    final Map<String, dynamic> entryMap = {
+      'date': formattedDate,
+      'hadMigraine': entry.hadMigraine ? 1 : 0,
+      'medication': entry.medication,
+      'trigger': entry.trigger,
+      'intensity': entry.intensity,
+      'notes': entry.notes,
+    };
+
+    return db.insert('migraine_entries', entryMap);
   }
 
   Future<int> updateEntry(MigraineEntry entry) async {
     final db = await instance.database;
-    final dateFormat = DateFormat('yyyy-MM-dd');
-    final formattedDate = dateFormat.format(entry.date);
-    final entryMap = entry.toMap();
-    entryMap.remove('id');
-    print('Updating entry: $entryMap');
+    final formattedDate = _formatDate(entry.date);
+
+    final Map<String, dynamic> entryMap = {
+      'date': formattedDate,
+      'hadMigraine': entry.hadMigraine ? 1 : 0,
+      'medication': entry.medication,
+      'trigger': entry.trigger,
+      'intensity': entry.intensity,
+      'notes': entry.notes,
+    };
+
     return await db.update(
       'migraine_entries',
       entryMap,
-      where: 'date LIKE ?',
-      whereArgs: ['$formattedDate%'],
+      where: 'id = ?',
+      whereArgs: [entry.id],
     );
+  }
+
+  Future<MigraineEntry?> getEntryByDate(DateTime date) async {
+    final db = await instance.database;
+    final formattedDate = _formatDate(date);
+
+    final maps = await db.query(
+      'migraine_entries',
+      where: 'date = ?',
+      whereArgs: [formattedDate],
+    );
+
+    if (maps.isEmpty) return null;
+
+    return MigraineEntry(
+      id: maps.first['id'] as int,
+      date: DateTime.parse(maps.first['date'] as String),
+      hadMigraine: (maps.first['hadMigraine'] as int) == 1,
+      medication: maps.first['medication'] as String?,
+      trigger: maps.first['trigger'] as String?,
+      intensity: maps.first['intensity'] as String?,
+      notes: maps.first['notes'] as String?,
+    );
+  }
+
+  Future<List<String>> getDatesWithEntries() async {
+    final db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'migraine_entries',
+      columns: ['date'],
+      orderBy: 'date DESC',
+    );
+    return maps.map((map) => map['date'] as String).toList();
   }
 
   Future<int> deleteEntry(int id) async {
@@ -89,16 +129,26 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<MigraineEntry>> getEntries() async {
+  Future<List<MigraineEntry>> getAllEntries() async {
     final db = await instance.database;
-    final result = await db.query('migraine_entries');
-    print('OBTENIENDO RESULTADOS: $result');
-    return result.map((map) => MigraineEntry.fromMap(map)).toList();
+    final List<Map<String, dynamic>> maps = await db.query(
+      'migraine_entries',
+      orderBy: 'date DESC',
+    );
+
+    return maps.map((map) => MigraineEntry(
+      id: map['id'] as int,
+      date: DateTime.parse(map['date'] as String),
+      hadMigraine: (map['hadMigraine'] as int) == 1,
+      medication: map['medication'] as String?,
+      trigger: map['trigger'] as String?,
+      intensity: map['intensity'] as String?,
+      notes: map['notes'] as String?,
+    )).toList();
   }
 
-  Future<List<String>> getDatesWithEntries() async {
+  Future close() async {
     final db = await instance.database;
-    final result = await db.rawQuery('SELECT DISTINCT date FROM migraine_entries');
-    return result.map((row) => row['date'] as String).toList();
+    db.close();
   }
 }

@@ -1,11 +1,11 @@
 class MigraineEntry {
-  final int? id;
-  final DateTime date;
-  final bool hadMigraine;
-  final String? medication;
-  final String? trigger;
-  final String intensity;
-  final String? notes;
+  int? id;
+  DateTime date;
+  bool hadMigraine;
+  String? medication;
+  String? trigger;
+  String? intensity;
+  String? notes;
 
   MigraineEntry({
     this.id,
@@ -13,29 +13,9 @@ class MigraineEntry {
     required this.hadMigraine,
     this.medication,
     this.trigger,
-    required this.intensity,
+    this.intensity,
     this.notes,
   });
-
-  MigraineEntry copyWith({
-    int? id,
-    DateTime? date,
-    bool? hadMigraine,
-    String? medication,
-    String? trigger,
-    String? intensity,
-    String? notes,
-  }) {
-    return MigraineEntry(
-      id: id ?? this.id,
-      date: date ?? this.date,
-      hadMigraine: hadMigraine ?? this.hadMigraine,
-      medication: medication ?? this.medication,
-      trigger: trigger ?? this.trigger,
-      intensity: intensity ?? this.intensity,
-      notes: notes ?? this.notes,
-    );
-  }
 
   Map<String, dynamic> toMap() {
     return {
